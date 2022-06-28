@@ -9,9 +9,6 @@
 
 
 // ********** PARAMETERS START ***********
-// LCD Display
-LiquidCrystal_I2C lcd(0x27, 16, 2);
-
 // GPIOs
 #define POWER_PIN  16 // Wassersensor Power
 #define SIGNAL_PIN 35 // Wassersensor Signal
@@ -88,28 +85,27 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {   //callba
   // Read out a name from JSON content (assuming JSON doc: {"SensorType" : "SomeSensorType", "value" : 42})
   //const char* name = doc["SensorType"];
   int res = doc["bossres"];
+  int maIdC = doc["maIdRes"];
   // Serial.println(name);
   Serial.println("-------------------");
   Serial.println(res);
+  if(maIdC == maId){
+    // Antwort vom Chef auswerten und entsprechende Aktion durchführen
+    if (res == 1) {
+      // Kaffee nachfüllen
+      fillCoffee();
+    } else {
+      // Ton abspielen
+      Serial.println("Beeper");
+      EasyBuzzer.singleBeep(200, 500);
+      delay(1000);
+      EasyBuzzer.stopBeep(); 
+    }
 
-  // Antwort vom Chef auswerten und entsprechende Aktion durchführen
-  if (res == 1) {
-    fillCoffee();
-
-  } else {
-    Serial.println("Beeper");
-    EasyBuzzer.singleBeep(200, 500);
-    delay(1000);
-    EasyBuzzer.stopBeep();
-
+    // Eine Stunde warten
+    delay(3600000);
+    response = 1;
   }
-
-  // Eine Stunde warten
-  delay(3600000);
-  EasyBuzzer.singleBeep(1000, 500);
-  delay(1000);
-  EasyBuzzer.stopBeep();
-  response = 1;
 }
 
 /**
@@ -120,14 +116,11 @@ void initMqtt() {
 
   // Set the callback-Function when new messages are received.
   client.setCallback(mqtt_callback);
-
-
   client.connect(mqttdevice, mqttuser, mqttpasswd);
   while (!client.connected()) {
     Serial.print(".");
     delay(500);
   }
-
   // subscribe to a certain topic
   client.subscribe("bossResponse");
 }
@@ -170,9 +163,7 @@ void setJSONData(int id, int waterLevel) {
 
 // -----------------------------------------------------------------------------------------
 
-
-
-
+ //Funktion, um den aktuellen Wasserstand im Kaffeebehälter zu lesen
 int getWaterLevel() {
   int valueWL = 0;
   digitalWrite(POWER_PIN, HIGH);  // turn the sensor ON
@@ -181,7 +172,6 @@ int getWaterLevel() {
   digitalWrite(POWER_PIN, LOW);   // turn the sensor OFF
   Serial.print("The water sensor value: ");
   Serial.println(valueWL);
-
   return valueWL;
 }
 
@@ -206,21 +196,18 @@ void setup() {
 
 void loop() {
   EasyBuzzer.update();
-  // loop the mqtt client so it can maintain its connection and send and receive messages
   client.loop();
+  // Wasserstand im Kaffeebecher lesen
   waterLevel = getWaterLevel();
+
   if (waterLevel == 0) {
     client.loop();
     response = 0;
     Serial.println("WaterLevel == 0, sende Message an Boss");
 
-    // set measured data to preprared JSON document
+    // Nachricht, dass Kaffee leer ist an Chef
     setJSONData(maId, waterLevel);
-    // serialize JSON document to a string representation
     serializeJsonPretty(doc, msg);
-    // Mesage an broker und warten auf Genehmigung
-
-    // publish to MQTT broker
     client.publish(outTopic, msg);
     client.loop();
 
@@ -229,11 +216,6 @@ void loop() {
       client.loop();
       delay(100);
     }
-
   }
-
-
-
-  delay(500);
-
+  delay(3000)
 }

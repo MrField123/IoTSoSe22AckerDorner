@@ -29,12 +29,14 @@ const char *outTopic = "bossResponse";
 
 int xValue, yValue;
 int bossCheck = 0;
+int maIdG;
 WiFiMulti wifiMulti;
 
 WiFiClient wifiClient;
 PubSubClient client(wifiClient);
 
 void writeCheck(int maId) {
+  maIdG = maId;
   lcd.setCursor(4, 2);
   lcd.print(maId);
 }
@@ -42,7 +44,7 @@ void writeCheck(int maId) {
 void bossChecker() {
   while (bossCheck == 0) {
     delay(100);
-     client.loop();
+    client.loop();
     xValue = analogRead(X_PIN);
     Serial.println(xValue);
     if (xValue > 3500) {
@@ -163,6 +165,7 @@ void initWifi() {
 void setJSONData(int bossres) {
   doc.clear();
   doc["bossres"] = bossres;
+  doc["maIdRes"] = maIdG;
 }
 
 
@@ -178,7 +181,6 @@ void sendBossRes(int res) {
   setJSONData(res);
   serializeJsonPretty(doc, msg);
   // Mesage an broker und warten auf Genehmigung
-
   // publish to MQTT broker
   client.publish(outTopic, msg);
   client.loop();
@@ -195,31 +197,24 @@ void printDefault() {
 }
 
 
-void setup()
-{
+void setup(){
   Serial.begin(115200);
-
-  //delay(2000);
-
   // Connect to WLAN
   initWifi();
-
   // Connect to MQTT server
   initMqtt();
-
   // Print to console
   Serial.println("Setup completed.");
   
+  //Ausgabe des Standardtextes auf dem LCD-Display
   printDefault();
 }
 
 
-void loop()
-{
-  //Warten auf MQTT Nachricht eines MA
+void loop(){
+  //Warten auf MQTT Nachricht eines Mitarbeiters
   while(true){
     delay(100);
     client.loop();
   }
-
 }
