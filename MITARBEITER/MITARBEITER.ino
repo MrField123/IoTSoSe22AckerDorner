@@ -1,4 +1,3 @@
-#include "DHT.h"
 #include <Arduino.h>
 #include <Wire.h>
 #include <WiFi.h>
