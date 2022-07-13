@@ -99,11 +99,11 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {   //callba
       EasyBuzzer.singleBeep(200, 500);
       delay(1000);
       EasyBuzzer.stopBeep(); 
+      // Eine Stunde warten
+      delay(3600000);
+      response = 1;
     }
 
-    // Eine Stunde warten
-    delay(3600000);
-    response = 1;
   }
 }
 
